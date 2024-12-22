@@ -370,16 +370,27 @@ const GymMembers = () => {
                             renderInput={(props) => <TextField {...props} />}
                           />
                         </TableCell>
-                        <TableCell align="center">
+                        <TableCell
+                          align="center"
+                          sx={{ display: "flex", gap: "8px" }}
+                        >
                           <Button
                             color="primary"
                             onClick={() => updateMember(member.id)}
+                            sx={{
+                              border: "1px solid currentColor",
+                              borderRadius: "5px",
+                            }}
                           >
                             Save
                           </Button>
                           <Button
                             color="secondary"
                             onClick={() => setEditMember(null)}
+                            sx={{
+                              border: "1px solid currentColor",
+                              borderRadius: "5px",
+                            }}
                           >
                             Cancel
                           </Button>
@@ -397,21 +408,36 @@ const GymMembers = () => {
                         <TableCell>
                           {dayjs(member.endDate.toDate()).format("YYYY-MM-DD")}
                         </TableCell>
-                        <TableCell align="center">
+                        <TableCell
+                          align="center"
+                          sx={{ display: "flex", gap: "8px" }}
+                        >
                           <Button
                             color="primary"
                             onClick={() => setEditMember(member)}
+                            sx={{
+                              border: "1px solid currentColor",
+                              borderRadius: "5px",
+                            }}
                           >
                             Edit
                           </Button>
                           <Button
                             color="secondary"
                             onClick={() => handleOpenDeleteDialog(member.id)}
+                            sx={{
+                              border: "1px solid currentColor",
+                              borderRadius: "5px",
+                            }}
                           >
                             Delete
                           </Button>
                           <Button
                             color="warning"
+                            sx={{
+                              border: "1px solid currentColor",
+                              borderRadius: "5px",
+                            }}
                             onClick={() => sendReminderEmail(member)}
                           >
                             Send Reminder
@@ -440,10 +466,25 @@ const GymMembers = () => {
             </DialogContentText>
           </DialogContent>
           <DialogActions>
-            <Button onClick={handleCloseDeleteDialog} color="primary">
+            <Button
+              sx={{
+                border: "1px solid currentColor",
+                borderRadius: "5px",
+              }}
+              onClick={handleCloseDeleteDialog}
+              color="primary"
+            >
               Cancel
             </Button>
-            <Button onClick={handleDeleteMember} color="secondary" autoFocus>
+            <Button
+              sx={{
+                border: "1px solid currentColor",
+                borderRadius: "5px",
+              }}
+              onClick={handleDeleteMember}
+              color="secondary"
+              autoFocus
+            >
               Delete
             </Button>
           </DialogActions>
