@@ -43,6 +43,8 @@ const GymMembers = () => {
     email: "",
     startDate: null,
     endDate: null,
+    phoneNumber: "",
+    subscriptionPlan: "Monthly",
   });
   const [deleteMemberId, setDeleteMemberId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -53,13 +55,25 @@ const GymMembers = () => {
   const [sortOrder, setSortOrder] = useState("asc"); // Sorting order: 'asc' or 'desc'
   // Filter members based on the search query
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [planSearchQuery, setPlanSearchQuery] = useState("");
+  const todayDate = dayjs().format("YYYY-MM-DD");
+  console.log(todayDate);
   useEffect(() => {
     const filtered = members.filter((member) =>
       member.name.toLowerCase().includes(searchQuery.toLowerCase()),
     );
     setFilteredMembers(filtered);
   }, [searchQuery, members]);
-
+  useEffect(() => {
+    const filtered = members.filter(
+      (member) =>
+        member.subscriptionPlan &&
+        member?.subscriptionPlan
+          .toLowerCase()
+          .includes(planSearchQuery.toLowerCase()),
+    );
+    setFilteredMembers(filtered);
+  }, [planSearchQuery, members]);
   // Handle page change
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -83,18 +97,35 @@ const GymMembers = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   }
+  function isValidPhoneNumber(phoneNumber) {
+    // Remove non-numeric characters
+    const numericOnly = phoneNumber.replace(/\D/g, "");
 
+    // Check if the resulting string has exactly 10 characters
+    return numericOnly.length === 10;
+  }
   // Add new member
+
   const addMember = async () => {
     if (
       newMember.startDate &&
       newMember.endDate &&
       isValidEmail(newMember.email) &&
-      newMember.name
+      isValidPhoneNumber(newMember.phoneNumber) &&
+      newMember.name &&
+      newMember.phoneNumber &&
+      newMember.subscriptionPlan
     ) {
       await addDoc(membersCollectionRef, newMember);
       fetchMembers();
-      setNewMember({ name: "", email: "", startDate: null, endDate: null });
+      setNewMember({
+        name: "",
+        email: "",
+        startDate: null,
+        endDate: null,
+        phoneNumber: "",
+        subscriptionPlan: "Monthly",
+      });
     } else {
       alert("Please fill all fields correctly!");
     }
@@ -214,6 +245,16 @@ const GymMembers = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <TextField
+                label="PhoneNumber"
+                fullWidth
+                value={newMember.phoneNumber}
+                onChange={(e) =>
+                  setNewMember({ ...newMember, phoneNumber: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <TextField
                 label="Email"
                 fullWidth
                 value={newMember.email}
@@ -222,6 +263,7 @@ const GymMembers = () => {
                 }
               />
             </Grid>
+
             <Grid item xs={12} sm={6} md={3}>
               <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DatePicker
@@ -258,6 +300,28 @@ const GymMembers = () => {
                 />
               </LocalizationProvider>
             </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                select
+                fullWidth
+                label="Subscription Plan"
+                value={newMember.subscriptionPlan}
+                onChange={(e) =>
+                  setNewMember({
+                    ...newMember,
+                    subscriptionPlan: e.target.value,
+                  })
+                }
+                SelectProps={{
+                  native: true,
+                }}
+              >
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="halfYear">Half Year</option>
+                <option value="yearly">Yearly</option>
+              </TextField>
+            </Grid>
             <Grid item xs={12}>
               <Button
                 onClick={addMember}
@@ -283,6 +347,19 @@ const GymMembers = () => {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
+        <TextField
+          label="Search by Plan"
+          variant="outlined"
+          fullWidth
+          margin="normal"
+          value={planSearchQuery}
+          onChange={(e) => setPlanSearchQuery(e.target.value)}
+        />
+        {/* {filteredMembers?groupedMembers(filteredMembers).map(ele=>{
+        
+        }):groupedMembers(members).map(ele=>{
+        
+        })} */}
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
@@ -297,7 +374,11 @@ const GymMembers = () => {
                     Name
                   </TableSortLabel>
                 </TableCell>
+                <TableCell sx={{ color: "var(--orange)" }}>
+                  Phone Number
+                </TableCell>
                 <TableCell sx={{ color: "var(--orange)" }}>Email</TableCell>
+
                 <TableCell sx={{ color: "var(--orange)" }}>
                   Start Date
                 </TableCell>
@@ -312,141 +393,425 @@ const GymMembers = () => {
                     End Date
                   </TableSortLabel>
                 </TableCell>
+                <TableCell sx={{ color: "var(--orange)" }}>Plan</TableCell>
                 <TableCell sx={{ color: "var(--orange)" }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {filteredMembers
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((member) => (
-                  <TableRow key={member.id}>
-                    {editMember?.id == member.id ? (
-                      <>
-                        <TableCell>
-                          <TextField
-                            fullWidth
-                            value={editMember.name}
-                            onChange={(e) =>
-                              setEditMember({
-                                ...editMember,
-                                name: e.target.value,
-                              })
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <TextField
-                            fullWidth
-                            value={editMember.email}
-                            onChange={(e) =>
-                              setEditMember({
-                                ...editMember,
-                                email: e.target.value,
-                              })
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <DatePicker
-                            value={dayjs(editMember.startDate.toDate())}
-                            onChange={(date) =>
-                              setEditMember({
-                                ...editMember,
-                                startDate: Timestamp.fromDate(date.toDate()),
-                              })
-                            }
-                            renderInput={(props) => <TextField {...props} />}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <DatePicker
-                            value={dayjs(editMember.endDate.toDate())}
-                            onChange={(date) =>
-                              setEditMember({
-                                ...editMember,
-                                endDate: Timestamp.fromDate(date.toDate()),
-                              })
-                            }
-                            renderInput={(props) => <TextField {...props} />}
-                          />
-                        </TableCell>
-                        <TableCell
-                          align="center"
-                          sx={{ display: "flex", gap: "8px" }}
-                        >
-                          <Button
-                            color="primary"
-                            onClick={() => updateMember(member.id)}
-                            sx={{
-                              border: "1px solid currentColor",
-                              borderRadius: "5px",
-                            }}
-                          >
-                            Save
-                          </Button>
-                          <Button
-                            color="secondary"
-                            onClick={() => setEditMember(null)}
-                            sx={{
-                              border: "1px solid currentColor",
-                              borderRadius: "5px",
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                        </TableCell>
-                      </>
-                    ) : (
-                      <>
-                        <TableCell>{member.name}</TableCell>
-                        <TableCell>{member.email}</TableCell>
-                        <TableCell>
-                          {dayjs(member.startDate.toDate()).format(
-                            "YYYY-MM-DD",
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {dayjs(member.endDate.toDate()).format("YYYY-MM-DD")}
-                        </TableCell>
-                        <TableCell
-                          align="center"
-                          sx={{ display: "flex", gap: "8px" }}
-                        >
-                          <Button
-                            color="primary"
-                            onClick={() => setEditMember(member)}
-                            sx={{
-                              border: "1px solid currentColor",
-                              borderRadius: "5px",
-                            }}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            color="secondary"
-                            onClick={() => handleOpenDeleteDialog(member.id)}
-                            sx={{
-                              border: "1px solid currentColor",
-                              borderRadius: "5px",
-                            }}
-                          >
-                            Delete
-                          </Button>
-                          <Button
-                            color="warning"
-                            sx={{
-                              border: "1px solid currentColor",
-                              borderRadius: "5px",
-                            }}
-                            onClick={() => sendReminderEmail(member)}
-                          >
-                            Send Reminder
-                          </Button>
-                        </TableCell>
-                      </>
-                    )}
-                  </TableRow>
-                ))}
+                .map((member) => {
+                  return (
+                    dayjs(member.endDate.toDate()).format("YYYY-MM-DD") >=
+                      todayDate && (
+                      <TableRow key={member.id}>
+                        {editMember?.id == member.id ? (
+                          <>
+                            <TableCell>
+                              <TextField
+                                fullWidth
+                                value={editMember.name}
+                                onChange={(e) =>
+                                  setEditMember({
+                                    ...editMember,
+                                    name: e.target.value,
+                                  })
+                                }
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <TextField
+                                fullWidth
+                                value={editMember.phoneNumber}
+                                onChange={(e) =>
+                                  setEditMember({
+                                    ...editMember,
+                                    phoneNumber: e.target.value,
+                                  })
+                                }
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <TextField
+                                fullWidth
+                                value={editMember.email}
+                                onChange={(e) =>
+                                  setEditMember({
+                                    ...editMember,
+                                    email: e.target.value,
+                                  })
+                                }
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <DatePicker
+                                value={dayjs(editMember.startDate.toDate())}
+                                onChange={(date) =>
+                                  setEditMember({
+                                    ...editMember,
+                                    startDate: Timestamp.fromDate(
+                                      date.toDate(),
+                                    ),
+                                  })
+                                }
+                                renderInput={(props) => (
+                                  <TextField {...props} />
+                                )}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <DatePicker
+                                value={dayjs(editMember.endDate.toDate())}
+                                onChange={(date) =>
+                                  setEditMember({
+                                    ...editMember,
+                                    endDate: Timestamp.fromDate(date.toDate()),
+                                  })
+                                }
+                                renderInput={(props) => (
+                                  <TextField {...props} />
+                                )}
+                              />
+                            </TableCell>
+                            <TableCell
+                              align="center"
+                              sx={{ display: "flex", gap: "8px" }}
+                            >
+                              <Button
+                                color="primary"
+                                onClick={() => updateMember(member.id)}
+                                sx={{
+                                  border: "1px solid currentColor",
+                                  borderRadius: "5px",
+                                }}
+                              >
+                                Save
+                              </Button>
+                              <Button
+                                color="secondary"
+                                onClick={() => setEditMember(null)}
+                                sx={{
+                                  border: "1px solid currentColor",
+                                  borderRadius: "5px",
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </TableCell>
+                          </>
+                        ) : (
+                          <>
+                            <TableCell>{member.name}</TableCell>
+                            <TableCell>{member.phoneNumber}</TableCell>
+                            <TableCell>{member.email}</TableCell>
+                            <TableCell>
+                              {dayjs(member.startDate.toDate()).format(
+                                "YYYY-MM-DD",
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {dayjs(member.endDate.toDate()).format(
+                                "YYYY-MM-DD",
+                              )}
+                            </TableCell>
+                            <TableCell>{member.subscriptionPlan}</TableCell>
+                            <TableCell
+                              align="center"
+                              sx={{ display: "flex", gap: "8px" }}
+                            >
+                              <Button
+                                color="primary"
+                                onClick={() => setEditMember(member)}
+                                sx={{
+                                  border: "1px solid currentColor",
+                                  borderRadius: "5px",
+                                }}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                color="secondary"
+                                onClick={() =>
+                                  handleOpenDeleteDialog(member.id)
+                                }
+                                sx={{
+                                  border: "1px solid currentColor",
+                                  borderRadius: "5px",
+                                }}
+                              >
+                                Delete
+                              </Button>
+                              <Button
+                                color="warning"
+                                sx={{
+                                  border: "1px solid currentColor",
+                                  borderRadius: "5px",
+                                }}
+                                onClick={() => sendReminderEmail(member)}
+                              >
+                                Send Reminder
+                              </Button>
+                            </TableCell>
+                          </>
+                        )}
+                      </TableRow>
+                    )
+                  );
+                })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <Dialog
+          open={showDeleteDialog}
+          onClose={handleCloseDeleteDialog}
+          aria-labelledby="alert-dialog-title"
+          aria-describedby="alert-dialog-description"
+        >
+          <DialogTitle id="alert-dialog-title">
+            {"Confirm Deletion"}
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText id="alert-dialog-description">
+              Are you sure you want to delete this member? This action cannot be
+              undone.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button
+              sx={{
+                border: "1px solid currentColor",
+                borderRadius: "5px",
+              }}
+              onClick={handleCloseDeleteDialog}
+              color="primary"
+            >
+              Cancel
+            </Button>
+            <Button
+              sx={{
+                border: "1px solid currentColor",
+                borderRadius: "5px",
+              }}
+              onClick={handleDeleteMember}
+              color="secondary"
+              autoFocus
+            >
+              Delete
+            </Button>
+          </DialogActions>
+        </Dialog>
+        <TablePagination
+          component="div"
+          count={filteredMembers.length}
+          page={page}
+          onPageChange={handleChangePage}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          rowsPerPageOptions={[5, 10, 15, 20]}
+        />
+      </Box>
+      <Box>
+        <Typography sx={{ color: "white" }} variant="h3" gutterBottom>
+          Expired Subscriptions
+        </Typography>
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ color: "var(--orange)" }}>
+                  <TableSortLabel
+                    active
+                    direction={sortOrder}
+                    onClick={sortMembersByName}
+                    sx={{ color: "var(--orange) !important" }}
+                  >
+                    Name
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell sx={{ color: "var(--orange)" }}>
+                  Phone Number
+                </TableCell>
+                <TableCell sx={{ color: "var(--orange)" }}>Email</TableCell>
+
+                <TableCell sx={{ color: "var(--orange)" }}>
+                  Start Date
+                </TableCell>
+                <TableCell sx={{ color: "var(--orange)" }}>
+                  {/* Sortable End Date */}
+                  <TableSortLabel
+                    active
+                    direction={sortOrder}
+                    onClick={sortMembersByEndDate}
+                    sx={{ color: "var(--orange) !important" }}
+                  >
+                    End Date
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell sx={{ color: "var(--orange)" }}>Plan</TableCell>
+                <TableCell sx={{ color: "var(--orange)" }}>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredMembers
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((member) => {
+                  return (
+                    dayjs(member.endDate.toDate()).format("YYYY-MM-DD") <
+                      todayDate && (
+                      <TableRow key={member.id}>
+                        {editMember?.id == member.id ? (
+                          <>
+                            <TableCell>
+                              <TextField
+                                fullWidth
+                                value={editMember.name}
+                                onChange={(e) =>
+                                  setEditMember({
+                                    ...editMember,
+                                    name: e.target.value,
+                                  })
+                                }
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <TextField
+                                fullWidth
+                                value={editMember.phoneNumber}
+                                onChange={(e) =>
+                                  setEditMember({
+                                    ...editMember,
+                                    phoneNumber: e.target.value,
+                                  })
+                                }
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <TextField
+                                fullWidth
+                                value={editMember.email}
+                                onChange={(e) =>
+                                  setEditMember({
+                                    ...editMember,
+                                    email: e.target.value,
+                                  })
+                                }
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <DatePicker
+                                value={dayjs(editMember.startDate.toDate())}
+                                onChange={(date) =>
+                                  setEditMember({
+                                    ...editMember,
+                                    startDate: Timestamp.fromDate(
+                                      date.toDate(),
+                                    ),
+                                  })
+                                }
+                                renderInput={(props) => (
+                                  <TextField {...props} />
+                                )}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <DatePicker
+                                value={dayjs(editMember.endDate.toDate())}
+                                onChange={(date) =>
+                                  setEditMember({
+                                    ...editMember,
+                                    endDate: Timestamp.fromDate(date.toDate()),
+                                  })
+                                }
+                                renderInput={(props) => (
+                                  <TextField {...props} />
+                                )}
+                              />
+                            </TableCell>
+                            <TableCell
+                              align="center"
+                              sx={{ display: "flex", gap: "8px" }}
+                            >
+                              <Button
+                                color="primary"
+                                onClick={() => updateMember(member.id)}
+                                sx={{
+                                  border: "1px solid currentColor",
+                                  borderRadius: "5px",
+                                }}
+                              >
+                                Save
+                              </Button>
+                              <Button
+                                color="secondary"
+                                onClick={() => setEditMember(null)}
+                                sx={{
+                                  border: "1px solid currentColor",
+                                  borderRadius: "5px",
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </TableCell>
+                          </>
+                        ) : (
+                          <>
+                            <TableCell>{member.name}</TableCell>
+                            <TableCell>{member.phoneNumber}</TableCell>
+                            <TableCell>{member.email}</TableCell>
+                            <TableCell>
+                              {dayjs(member.startDate.toDate()).format(
+                                "YYYY-MM-DD",
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {dayjs(member.endDate.toDate()).format(
+                                "YYYY-MM-DD",
+                              )}
+                            </TableCell>
+                            <TableCell>{member.subscriptionPlan}</TableCell>
+                            <TableCell
+                              align="center"
+                              sx={{ display: "flex", gap: "8px" }}
+                            >
+                              <Button
+                                color="primary"
+                                onClick={() => setEditMember(member)}
+                                sx={{
+                                  border: "1px solid currentColor",
+                                  borderRadius: "5px",
+                                }}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                color="secondary"
+                                onClick={() =>
+                                  handleOpenDeleteDialog(member.id)
+                                }
+                                sx={{
+                                  border: "1px solid currentColor",
+                                  borderRadius: "5px",
+                                }}
+                              >
+                                Delete
+                              </Button>
+                              <Button
+                                color="warning"
+                                sx={{
+                                  border: "1px solid currentColor",
+                                  borderRadius: "5px",
+                                }}
+                                onClick={() => sendReminderEmail(member)}
+                              >
+                                Send Reminder
+                              </Button>
+                            </TableCell>
+                          </>
+                        )}
+                      </TableRow>
+                    )
+                  );
+                })}
             </TableBody>
           </Table>
         </TableContainer>
